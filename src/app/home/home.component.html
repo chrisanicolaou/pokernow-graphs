@@ -1,4 +1,7 @@
 <app-file-upload (fileSelectedEvent)="onFileSelected($event)"></app-file-upload>
-<!--<section style="position: relative; height:40vh; width:80vw">-->
-  <app-line-chart *ngIf="gameContextLoadingState === LoadingState.Loaded"></app-line-chart>
-<!--</section>-->
+<section *ngIf="gameContextLoadingState === LoadingState.Loaded" style="position: relative; height:40vh; width:60vw;">
+  <h1>Game summary</h1>
+  <app-line-chart [filterSubject]="playersToFilterBySubject"></app-line-chart>
+  <button *ngFor="let player of gameContext.players" mat-raised-button color="{{ isPlayerInFilter(player) ? 'primary' : 'basic'}}" (click)="filterByPlayerClicked(player)">{{player.name}}</button>
+  <app-pie-chart></app-pie-chart>
+</section>

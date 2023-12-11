@@ -7,6 +7,8 @@ import {NgForOf} from "@angular/common";
 import { GameContext } from "../../interfaces/game-context.model";
 import { GameContextService } from "../../services/game-context.service";
 import { ChartService } from "../../services/chart.service";
+import { Player } from "../../interfaces/player.model";
+import { Subject } from "rxjs";
 
 @Component({
   selector: 'app-line-chart',
@@ -20,31 +22,89 @@ import { ChartService } from "../../services/chart.service";
   styleUrls: ['./line-chart.component.scss'],
 })
 export class LineChartComponent implements AfterViewInit {
+  @Input() filterSubject: Subject<Player[]> = new Subject<Player[]>();
   @ViewChild(BaseChartDirective) chart?: BaseChartDirective;
   public chartType: ChartType = 'line';
   public chartData: ChartConfiguration['data'] = {datasets: [], labels: [], xLabels: [], yLabels: []}
   public chartOpts: ChartConfiguration['options'] = {
     elements: {
       line: {
-        tension: 1,
+        tension: 0.5,
       },
+    },
+    scales: {
+      x: {
+        title: {
+          display: true,
+          text: "Hands played"
+        }
+      },
+      y: {
+        ticks: {
+          callback: (value, index, ticks) =>  value as number >= 0 ? `$${value}` : `-$${Math.abs(value as number)}`
+        },
+        title: {
+          display: true,
+          text: "Loss | Profit"
+        }
+      }
+    },
+    plugins: {
+      title: {
+        display: true,
+        text: "Player winnings"
+      }
     }
   };
+
+  private _gameContext: GameContext | undefined;
 
   constructor(public gameContextService: GameContextService, public chartService: ChartService) {
     Chart.register(Annotation);
   }
 
   ngAfterViewInit(): void {
-    this.gameContextService.gameContextSubject.subscribe(gameContext => this.regenerateChartData(gameContext));
+    this.gameContextService.gameContextSubject.subscribe(gameContext => {
+      this._gameContext = gameContext;
+      this.regenerateChartData(gameContext);
+    });
+    this.filterSubject.subscribe(playersToFilterBy => this.filterByPlayers(playersToFilterBy));
   }
 
   private regenerateChartData(gameContext: GameContext) {
-    this.chartService.populateDataFromGameContext(this.chartData, gameContext);
+    this.chartData.xLabels = gameContext.hands.map(hand => hand.index);
+    this.chartData.datasets = gameContext.players.map(player => {
+      return {
+        data: gameContext.hands.map(hand => hand.players.find(p => p.id === player.id)?.netProfitLoss ?? 0),
+        label: player.name,
+        pointStyle: false,
+      }
+    });
     this.chart?.update();
   }
 
-  // events
+  public filterByPlayers(players: Player[]) {
+    if (!this._gameContext) return;
+
+    if (players.length < 1) {
+      this.regenerateChartData(this._gameContext);
+      return;
+    }
+
+    this.chartData.datasets = players.map(player => {
+      return {
+        data: this._gameContext!.hands.map(hand => hand.players.find(p => p.id === player.id)?.netProfitLoss ?? 0),
+        label: player.name,
+        pointStyle: false,
+        // This was ugly - nice idea tho for once I have a theme
+        // backgroundColor: this.getRandomColor(),
+        fill: "origin"
+      }
+    })
+    this.chart?.update();
+  }
+
+  // sample events
   public chartClicked({
                         event,
                         active,
@@ -152,4 +212,3 @@ export class LineChartComponent implements AfterViewInit {
 //     },
 //   },
 // };
-
