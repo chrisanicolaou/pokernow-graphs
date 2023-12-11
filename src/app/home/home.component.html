@@ -1,0 +1,2 @@
+<app-file-upload *ngIf="gameContextLoadingState === LoadingState.None" (fileSelectedEvent)="onFileSelected($event)"></app-file-upload>
+<app-line-chart *ngIf="gameContextLoadingState === LoadingState.Loaded"></app-line-chart>
