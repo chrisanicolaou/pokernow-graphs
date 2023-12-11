@@ -33,7 +33,8 @@ export class GameContextService {
         this._gameContext.players.push({
           name: lineAsWords[indexPrecedingPlayerId - 1].slice(2),
           id: id,
-          profitLoss: 0
+          netProfitLoss: 0,
+          grossProfitLoss: 0
         });
       });
 
@@ -64,7 +65,9 @@ export class GameContextService {
         }
         this._gameContext.hands.push(hand);
         this._gameContext.players.forEach(player => {
-          player.profitLoss += hand.players.find(handPlayer => player.id === handPlayer.id)?.profitLoss ?? 0;
+          let playerInHand = hand.players.find(handPlayer => player.id === handPlayer.id)
+          player.netProfitLoss += playerInHand!.grossProfitLoss ?? 0;
+          playerInHand!.netProfitLoss = player.netProfitLoss;
         })
       });
 
@@ -99,16 +102,16 @@ export class GameContextService {
 
     // The only 2 instances where an amount should be added to a player are if they are collecting from pot, or being returned their uncalled bet.
     if (currentAction.includes("collected") || currentAction.includes("Uncalled bet")) {
-      hand.players[playerIndex].profitLoss += amount;
+      hand.players[playerIndex].grossProfitLoss += amount;
     } else {
       // PROBLEM - Currently doesn't account for amount player already has in pot. E.g, if I have 30p in pot and Andy raises to 50p, when I call, the ledger reads
       // "Chris called 0.50". Need to find a way to track amount already in pot and only add the difference :/
       // SOLUTION - When currentAction includes "Flop", "Turn", or "River", start a new Round.
       // Round object will be similar to Hand in that it contains an array of all players. We will borrow the profitLoss field to track the amount the player has in the pot
       // in the current round. Then whenever they call/raise, we subtract the amount already existing in the pot from their profit loss.
-      let amountRequiredToMatchPot = amount - round.players[playerIndex].profitLoss;
-      hand.players[playerIndex].profitLoss -= amountRequiredToMatchPot;
-      round.players[playerIndex].profitLoss += amountRequiredToMatchPot;
+      let amountRequiredToMatchPot = amount - round.players[playerIndex].grossProfitLoss;
+      hand.players[playerIndex].grossProfitLoss -= amountRequiredToMatchPot;
+      round.players[playerIndex].grossProfitLoss += amountRequiredToMatchPot;
     }
   }
 
@@ -117,7 +120,7 @@ export class GameContextService {
 
     const match = floatPattern.exec(currentAction);
 
-    return match ? parseFloat(match[0]) : null;
+    return match ? parseFloat(parseFloat(match[0]).toFixed(2)) : null;
   }
 
   private generatePlayersFromGameContext(): Player[] {
@@ -125,7 +128,8 @@ export class GameContextService {
       return {
         name: player.name,
         id: player.id,
-        profitLoss: 0
+        netProfitLoss: 0,
+        grossProfitLoss: 0
       };
     })
   }
