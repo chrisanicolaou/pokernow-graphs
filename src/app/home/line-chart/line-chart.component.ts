@@ -1,9 +1,12 @@
-import { Component, ViewChild } from '@angular/core';
+import { AfterViewInit, Component, Input, OnInit, ViewChild } from '@angular/core';
 import { Chart, ChartConfiguration, ChartEvent, ChartType } from 'chart.js';
 import {BaseChartDirective, NgChartsModule} from 'ng2-charts';
 import { MatButtonModule } from "@angular/material/button";
 import Annotation from 'chartjs-plugin-annotation';
 import {NgForOf} from "@angular/common";
+import { GameContext } from "../../interfaces/game-context.model";
+import { GameContextService } from "../../services/game-context.service";
+import { ChartService } from "../../services/chart.service";
 
 @Component({
   selector: 'app-line-chart',
@@ -16,43 +19,29 @@ import {NgForOf} from "@angular/common";
   templateUrl: './line-chart.component.html',
   styleUrls: ['./line-chart.component.scss'],
 })
-export class LineChartComponent {
+export class LineChartComponent implements AfterViewInit {
   @ViewChild(BaseChartDirective) chart?: BaseChartDirective;
   public chartType: ChartType = 'line';
   public chartData: ChartConfiguration['data'] = {datasets: [], labels: [], xLabels: [], yLabels: []}
   public chartOpts: ChartConfiguration['options'] = {
     elements: {
       line: {
-        tension: 0.5,
+        tension: 1,
       },
-    },
-    scales: {
-      // We use this empty structure as a placeholder for dynamic theming.
-      y: {
-        position: 'left',
-      },
-      y1: {
-        position: 'right',
-        grid: {
-          color: 'rgba(255,0,0,0.3)',
-        },
-        ticks: {
-          color: 'red',
-        },
-      },
-    },
-
-    plugins: {
-      legend: { display: true },
-      annotation: {
-        annotations: [
-        ],
-      },
-    },
+    }
   };
 
-  constructor() {
+  constructor(public gameContextService: GameContextService, public chartService: ChartService) {
     Chart.register(Annotation);
+  }
+
+  ngAfterViewInit(): void {
+    this.gameContextService.gameContextSubject.subscribe(gameContext => this.regenerateChartData(gameContext));
+  }
+
+  private regenerateChartData(gameContext: GameContext) {
+    this.chartService.populateDataFromGameContext(this.chartData, gameContext);
+    this.chart?.update();
   }
 
   // events

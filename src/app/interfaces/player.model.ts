@@ -1,5 +1,6 @@
 ﻿export interface Player {
   name: string;
   id: string;
-  profitLoss: number;
+  netProfitLoss: number;
+  grossProfitLoss: number;
 }
