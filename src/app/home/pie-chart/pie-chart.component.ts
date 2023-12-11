@@ -20,9 +20,12 @@ export class PieChartComponent implements AfterViewInit {
   // Pie
   public pieChartOptions: ChartConfiguration['options'] = {
     plugins: {
-      legend: {
+      title: {
         display: true,
-        position: 'top',
+        text: "Hands won"
+      },
+      legend: {
+        display: false
       },
       datalabels: {
         formatter: (value: any, ctx: any) => {
